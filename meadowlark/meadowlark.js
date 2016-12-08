@@ -3,7 +3,7 @@ var express = require('express'),
     fortune = require('./lib/fortune');
 
 // 设置模板引擎
-var handlebars = require('express3-handlebars').create({defaultLayout: 'main'});
+var handlebars = require('express3-handlebars').create({defaultLayout: 'main'}); // 引用模版引擎并设置默认layout文件
 app.engine('handlebars', handlebars.engine);
 app.set('view engine', 'handlebars');
 
@@ -13,8 +13,11 @@ app.use(express.static(__dirname + '/public'));
 // 设置端口
 app.set('port', process.env.PORT || 3000);
 
-
-
+// 判断是否进行测试
+app.use(function (req, res, next) {
+    res.locals.showTests = app.get('env') !== 'production' && req.query.test === '1';
+    next();
+});
 
 
 /*
@@ -27,7 +30,27 @@ app.get('/', function (req, res) {
 
 // 关于
 app.get('/about', function (req, res) {
-    res.render('about', {fortune: fortune.getFortune()});
+    res.render('about', {
+        fortune: fortune.getFortune(),
+        pageTestScript: '/qa/tests-about.js'
+    });
+});
+
+/*app.get('/tours/hood-river', function (req, res) {
+    res.render('tours/hood-river');
+});
+app.get('/tours/request-group-rate', function (req, res) {
+    res.render('tours/request-group-rate');
+});*/
+
+// 查看头信息
+app.get('/headers', function (req, res) {
+    res.set('Content-Type', 'text/plain');
+    var s = '';
+    for (var name in req.headers) {
+        s += name + ': ' + req.headers[name] + '\n';
+    }
+    res.send(s);
 });
 
 // 404
