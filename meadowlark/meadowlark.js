@@ -2,8 +2,19 @@ var express = require('express'),
     app = express(),
     fortune = require('./lib/fortune');
 
+app.use(require('body-parser')());
+
 // 设置模板引擎
-var handlebars = require('express3-handlebars').create({defaultLayout: 'main'}); // 引用模版引擎并设置默认layout文件
+var handlebars = require('express3-handlebars').create({
+    defaultLayout: 'main',
+    helpers: {
+        section: function (name, options) {
+            if(!this._sections) this._sections = {};
+            this._sections[name] = options.fn(this);
+            return null;
+        }
+    }
+}); // 引用模版引擎并设置默认layout文件
 app.engine('handlebars', handlebars.engine);
 app.set('view engine', 'handlebars');
 
@@ -36,12 +47,15 @@ app.get('/about', function (req, res) {
     });
 });
 
-/*app.get('/tours/hood-river', function (req, res) {
-    res.render('tours/hood-river');
+// 表单
+app.get('/newsletter', function (req, res) {
+    res.render('newsletter', {csrf: 'CSRF token goes here'});
 });
-app.get('/tours/request-group-rate', function (req, res) {
-    res.render('tours/request-group-rate');
-});*/
+
+// 提交成功提示页
+app.get('/thank-you', function (req, res) {
+    res.render('thank-you');
+});
 
 // 查看头信息
 app.get('/headers', function (req, res) {
@@ -53,6 +67,26 @@ app.get('/headers', function (req, res) {
     res.send(s);
 });
 
+
+//表单提交
+app.post('/process', function (req, res) {
+    console.log('Form (from querystring): ' + req.query.form);
+    console.log('CSRF token (from hidden form field): ' + req.body._csrf);
+    console.log('Name (from visible form field): ' + req.body.name);
+    console.log('Email (from visible form field): ' + req.body.email);
+
+    console.log(req.xhr);
+    console.log(req.accepts('json, html') === 'json');
+
+
+
+    if (req.xhr || req.accepts('json, html') === 'json') {
+        res.send({success: true});
+    } else {
+        res.redirect(303, '/thank-you');
+    }
+});
+
 // 404
 app.use(function (req, res) {
     res.status(404);
@@ -61,7 +95,7 @@ app.use(function (req, res) {
 
 // 500
 app.use(function (err, req, res, next) {
-    console.error(err.stack);
+    console.error(err);
     res.status(500);
     res.render('500');
 });
